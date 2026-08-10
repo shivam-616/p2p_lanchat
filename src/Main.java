@@ -1,3 +1,5 @@
+import jdk.swing.interop.SwingInterOpUtils;
+
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.SocketException;
@@ -19,6 +21,11 @@ public class Main {
         });
         listenerThread.start();
 
+        Thread chatThread = new Thread(() -> {
+            try { p.acceptLoop(); } catch (IOException e) { e.printStackTrace(); }
+        });
+        chatThread.start();
+
         Scanner sc = new Scanner(System.in);
         while (true) {
             String cmd = sc.nextLine();
@@ -29,6 +36,25 @@ public class Main {
                 break;
             }else if(cmd.equals("/hello")){
                 System.out.println("Hello");
+            }else if(cmd.equals("/accept")){
+                System.out.print("Peer name: ");
+                String connection_name = sc.next();
+                p.reply_to_connection("ack" , connection_name);
+            } else if (cmd.equals("/reject")) {
+                p.reply_to_connection("/reject" , "null");
+            } else if (cmd.equals("/connect")){
+                System.out.print("Peer name: ");
+                String peername = sc.next();
+
+                System.out.print("Peer Id: ");
+                String peerIp = sc.next();
+
+                System.out.print("Peer port: ");
+                int peerport = sc.nextInt();
+
+                p.connect_to(peername,p.user_name , peerIp,  peerport);
+            } else if (cmd.equals("/chat")) {
+                p.list_of_connection();
             }
         }
     }
