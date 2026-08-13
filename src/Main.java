@@ -4,27 +4,22 @@ import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) throws IOException {
+        if (args.length < 1) {
+            System.out.println(ConsoleColors.ERROR + "Please provide a username! Example: java Main Shivam" + ConsoleColors.RESET);
+            return;
+        }
+
         Peer p = new Peer();
         p.user_name = args[0];
-        p.user_port = Integer.parseInt(args[1]);
-        p.send_port = Integer.parseInt(args[2]);
-        p.datagramSocket = new DatagramSocket(p.user_port);
+        p.datagramSocket = new DatagramSocket(p.UDP_PORT);
 
         Thread listenerThread = new Thread(() -> {
-            try {
-                p.lisning_scan();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            try { p.lisning_scan(); } catch (IOException e) { e.printStackTrace(); }
         });
         listenerThread.start();
 
         Thread chatThread = new Thread(() -> {
-            try {
-                p.acceptLoop();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            try { p.acceptLoop(); } catch (IOException e) { e.printStackTrace(); }
         });
         chatThread.start();
 
@@ -34,50 +29,58 @@ public class Main {
         Scanner sc = new Scanner(System.in);
 
         while (true) {
-            System.out.print(ConsoleColors.PROMPT + "> " + ConsoleColors.RESET); // Adds a visual prompt for the user
+            System.out.print(ConsoleColors.PROMPT + "> " + ConsoleColors.RESET);
             String cmd = sc.nextLine();
 
-            if (cmd.equals("/chat")) {
-                System.out.print(ConsoleColors.SYS + "[sys] Starting a chat mode .......\n" +
-                        "[sys] peer_name: " + ConsoleColors.RESET);
+            if(cmd.equals("/chat")){
+                System.out.print(ConsoleColors.SYS + "[sys] Starting chat mode.......\n" +
+                        "[sys] Peer name: " + ConsoleColors.RESET);
                 String peer_name = sc.nextLine();
-                p.sending_chat(peer_name, sc);
+                p.sending_chat(peer_name , sc);
+
             } else if (cmd.equals("/scan")) {
                 p.find_peer();
+
             } else if (cmd.equals("/exit")) {
                 p.datagramSocket.close();
+                // Gracefully close active chat connections
                 for (java.net.Socket socket : p.active_connection.values()) {
                     if (socket != null && !socket.isClosed()) {
                         socket.close();
                     }
                 }
                 break;
-            } else if (cmd.equals("/hello")) {
+
+            } else if(cmd.equals("/hello")){
                 System.out.println(ConsoleColors.HIGHLIGHT + "Hello!" + ConsoleColors.RESET);
-            } else if (cmd.equals("/a")) {
+
+            } else if(cmd.equals("/a")){
                 System.out.print(ConsoleColors.PROMPT + "Peer name: " + ConsoleColors.RESET);
                 String connection_name = sc.next();
-                sc.nextLine();
-                p.reply_to_connection("ack", connection_name);
+                sc.nextLine(); // Consume leftover newline
+                p.reply_to_connection("ack" , connection_name);
+
             } else if (cmd.equals("/r")) {
-                p.reply_to_connection("/reject", "null");
-            } else if (cmd.equals("/connect")) {
-                System.out.print(ConsoleColors.SYS + "[sys] Peer_name: " + ConsoleColors.RESET);
+                p.reply_to_connection("/reject" , "null");
+
+            } else if (cmd.equals("/connect")){
+                System.out.print(ConsoleColors.SYS + "[sys] Peer name: " + ConsoleColors.RESET);
                 String peername = sc.next();
 
-                System.out.print(ConsoleColors.SYS + "[sys] Peer Id (IP): " + ConsoleColors.RESET);
+                System.out.print(ConsoleColors.SYS + "[sys] Peer IP: " + ConsoleColors.RESET);
                 String peerIp = sc.next();
 
-                System.out.print(ConsoleColors.SYS + "[sys] Peer port: " + ConsoleColors.RESET);
-                int peerport = sc.nextInt();
-                sc.nextLine(); // ADD THIS LINE: Consumes the leftover newline!
+                sc.nextLine(); // Consume leftover newline
 
-                p.send_connection(peername, p.user_name, peerIp, peerport);
+                p.send_connection(peername, p.user_name , peerIp);
+
             } else if (cmd.equals("/list")) {
                 p.list_of_connection();
+
             } else {
-                // Catch typos and let the user know
-                System.out.println(ConsoleColors.ERROR + "Unknown command. Try looking at the dashboard above." + ConsoleColors.RESET);
+                if(!cmd.trim().isEmpty()) {
+                    System.out.println(ConsoleColors.ERROR + "Unknown command. Try looking at the dashboard above." + ConsoleColors.RESET);
+                }
             }
         }
         System.out.println(ConsoleColors.ERROR + "Ending the session..." + ConsoleColors.RESET);
