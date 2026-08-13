@@ -30,26 +30,32 @@ public class Peer {
     String connection_reject = "REJECTED";
 
     public void lisning_scan() throws IOException {
-        InetAddress group = null;
-        group = InetAddress.getByName("255.255.255.255");
-        String reply = user_name;
-
-        byte[] buf;
-        buf = new byte[256];
-
-        DatagramPacket reciving_packet;
-        reciving_packet = new DatagramPacket(buf, buf.length, group, UDP_PORT);
+        byte[] buf = new byte[256];
+        DatagramPacket reciving_packet = new DatagramPacket(buf, buf.length);
 
         while (true) {
             try {
                 datagramSocket.receive(reciving_packet);
-                DatagramPacket sending_packet;
-                buf = reply.getBytes(StandardCharsets.UTF_8);
-                sending_packet = new DatagramPacket(buf, buf.length, reciving_packet.getAddress(), reciving_packet.getPort());
-                if (scanning) {
-                    discovered_Peer.add(new String(reciving_packet.getData(), 0, reciving_packet.getLength()) + "  |  " +reciving_packet.getAddress() + "  |  "+ reciving_packet.getPort());
-                } else {
+
+                // Read what the packet actually says
+                String receivedData = new String(reciving_packet.getData(), 0, reciving_packet.getLength());
+
+                if (receivedData.equals("ping")) {
+                    // 1. Someone is scanning. Send our username back!
+                    byte[] replyBuf = user_name.getBytes(StandardCharsets.UTF_8);
+                    DatagramPacket sending_packet = new DatagramPacket(replyBuf, replyBuf.length, reciving_packet.getAddress(), reciving_packet.getPort());
                     datagramSocket.send(sending_packet);
+
+                } else {
+                    // 2. It's not a ping. It must be a peer replying with their name!
+                    if (scanning) {
+                        String peerInfo = receivedData + "  |  " + reciving_packet.getAddress().getHostAddress() + "  |  " + reciving_packet.getPort();
+
+                        // Prevent adding duplicates
+                        if (!discovered_Peer.contains(peerInfo)) {
+                            discovered_Peer.add(peerInfo);
+                        }
+                    }
                 }
             } catch (SocketException e) {
                 System.out.println(ConsoleColors.SYS + "\n[sys] Closing the incoming_probes and outgoing_connection..... " + ConsoleColors.RESET);
@@ -57,7 +63,6 @@ public class Peer {
             }
         }
     }
-
     public void find_peer() throws IOException {
         discovered_Peer.clear(); // Reset list so it doesn't duplicate old scans
         scanning = true;
