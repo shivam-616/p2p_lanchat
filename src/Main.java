@@ -13,11 +13,11 @@ public class Main {
         p.user_name = args[0];
         p.user_port = Integer.parseInt(args[1]);
         p.send_port = Integer.parseInt(args[2]);
-        p.socket = new DatagramSocket(p.user_port);
+        p.datagramSocket = new DatagramSocket(p.user_port);
 
 
         Thread listenerThread = new Thread(() -> {
-            try { p.lisner(); } catch (IOException e) { e.printStackTrace(); }
+            try { p.lisning_scan(); } catch (IOException e) { e.printStackTrace(); }
         });
         listenerThread.start();
 
@@ -29,10 +29,16 @@ public class Main {
         Scanner sc = new Scanner(System.in);
         while (true) {
             String cmd = sc.nextLine();
-            if (cmd.equals("/scan")) {
-                p.scan();
+
+            if(cmd.equals("/chat")){
+                System.out.print("Starting a chat mode ....... Enter the peer_name: ");
+                String peer_name = sc.nextLine();
+                p.sending_chat(peer_name , sc);
+            }
+        else if (cmd.equals("/scan")) {
+                p.find_peer();
             } else if (cmd.equals("/exit")) {
-                    p.socket.close();
+                    p.datagramSocket.close();
                 break;
             }else if(cmd.equals("/hello")){
                 System.out.println("Hello");
@@ -52,8 +58,8 @@ public class Main {
                 System.out.print("Peer port: ");
                 int peerport = sc.nextInt();
 
-                p.connect_to(peername,p.user_name , peerIp,  peerport);
-            } else if (cmd.equals("/chat")) {
+                p.send_connection(peername,p.user_name , peerIp,  peerport);
+            } else if (cmd.equals("/all_connection")) {
                 p.list_of_connection();
             }
         }
